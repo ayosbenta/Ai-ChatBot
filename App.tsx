@@ -42,6 +42,7 @@ const App: React.FC = () => {
           language: Language.ENGLISH,
           services: [],
           active: false,
+          customInstructions: '',
           updatedAt: new Date(),
         }));
         setPages(fetchedPages);
@@ -152,6 +153,7 @@ const App: React.FC = () => {
         language: Language.ENGLISH,
         services: [],
         active: false,
+        customInstructions: '',
         updatedAt: new Date(),
     }));
     setPages(prevPages => {

@@ -30,6 +30,7 @@ export interface Page {
   active: boolean;
   services: string[];
   language: Language;
+  customInstructions: string;
   updatedAt: Date;
 }
 

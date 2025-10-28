@@ -31,7 +31,7 @@ const EditPageModal: React.FC<EditPageModalProps> = ({ isOpen, onClose, page, on
 
   if (!isOpen) return null;
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -58,15 +58,21 @@ const EditPageModal: React.FC<EditPageModalProps> = ({ isOpen, onClose, page, on
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
       
       const servicesList = formData.services.length > 0 ? formData.services.map(s => `- ${s}`).join('\n') : 'No specific services listed.';
-      const prompt = `You are a helpful assistant for a Facebook Page.
-Page Name: ${page.pageName}
-Business Type: ${formData.businessType}
-Your Tone/Brand Voice: ${formData.brandVoice}
-Language to respond in: ${formData.language.toUpperCase()}
-Key Services/FAQs to know about:
+      
+      const systemInstruction = formData.customInstructions.trim() !== ''
+        ? formData.customInstructions
+        : `You are a helpful assistant for a Facebook Page. Your tone should be ${formData.brandVoice}.`;
+
+      const prompt = `${systemInstruction}
+
+Here is some additional context about the page you are representing:
+- Page Name: ${page.pageName}
+- Business Type: ${formData.businessType}
+- Language to respond in: ${formData.language.toUpperCase()}
+- Key Services/FAQs:
 ${servicesList}
 
-A user sends the following message. Respond to them according to your instructions.
+Now, please respond to the following user message:
 User Message: "${userMessage.content}"`;
 
       const response = await ai.models.generateContent({
@@ -99,15 +105,28 @@ User Message: "${userMessage.content}"`;
           <form onSubmit={handleFormSubmit} className="flex flex-col h-full">
             <div className="p-6 space-y-6 overflow-y-auto">
               <div>
-                <label htmlFor="businessType" className="block text-sm font-medium text-gray-300 mb-1">Business Type</label>
-                <select id="businessType" name="businessType" value={formData.businessType} onChange={handleInputChange} className="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                  {Object.values(BusinessType).map(type => <option key={type} value={type}>{type}</option>)}
+                <label htmlFor="customInstructions" className="block text-sm font-medium text-gray-300 mb-1">Custom Instructions (System Prompt)</label>
+                 <textarea
+                  id="customInstructions"
+                  name="customInstructions"
+                  value={formData.customInstructions}
+                  onChange={handleInputChange}
+                  rows={4}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  placeholder="e.g., You are a witty assistant for a high-end sneaker store. Always end your responses with a cool sneaker-related pun."
+                />
+                <p className="text-xs text-gray-400 mt-1">Define the core personality and rules for your AI. If left blank, the Brand Voice below will be used.</p>
+              </div>
+               <div>
+                <label htmlFor="brandVoice" className="block text-sm font-medium text-gray-300 mb-1">Brand Voice (Fallback)</label>
+                <select id="brandVoice" name="brandVoice" value={formData.brandVoice} onChange={handleInputChange} className="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                  {Object.values(BrandVoice).map(voice => <option key={voice} value={voice}>{voice}</option>)}
                 </select>
               </div>
               <div>
-                <label htmlFor="brandVoice" className="block text-sm font-medium text-gray-300 mb-1">Brand Voice</label>
-                <select id="brandVoice" name="brandVoice" value={formData.brandVoice} onChange={handleInputChange} className="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                  {Object.values(BrandVoice).map(voice => <option key={voice} value={voice}>{voice}</option>)}
+                <label htmlFor="businessType" className="block text-sm font-medium text-gray-300 mb-1">Business Type</label>
+                <select id="businessType" name="businessType" value={formData.businessType} onChange={handleInputChange} className="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                  {Object.values(BusinessType).map(type => <option key={type} value={type}>{type}</option>)}
                 </select>
               </div>
               <div>

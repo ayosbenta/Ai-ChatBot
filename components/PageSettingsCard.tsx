@@ -2,7 +2,7 @@
 import React from 'react';
 import { Page } from '../types';
 import ToggleSwitch from './ToggleSwitch';
-import { EditIcon, RefreshIcon, LanguageIcon, BusinessIcon, VoiceIcon, ServicesIcon } from './icons';
+import { EditIcon, RefreshIcon, LanguageIcon, BusinessIcon, VoiceIcon, ServicesIcon, PromptIcon } from './icons';
 
 interface PageSettingsCardProps {
   page: Page;
@@ -27,6 +27,8 @@ const PageSettingsCard: React.FC<PageSettingsCardProps> = ({ page, onToggleActiv
     if (interval > 1) return Math.floor(interval) + " minutes ago";
     return "just now";
   };
+  
+  const hasCustomInstructions = page.customInstructions && page.customInstructions.trim() !== '';
 
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg ring-1 ring-white/10 flex flex-col justify-between">
@@ -44,8 +46,13 @@ const PageSettingsCard: React.FC<PageSettingsCardProps> = ({ page, onToggleActiv
         </div>
         
         <div className="space-y-3 text-sm text-gray-300">
+            <div className="flex items-center">
+              {hasCustomInstructions ? <PromptIcon className="w-4 h-4 mr-2 text-gray-400" /> : <VoiceIcon className="w-4 h-4 mr-2 text-gray-400" />}
+              <span className="italic truncate">
+                {hasCustomInstructions ? `"${page.customInstructions}"` : page.brandVoice}
+              </span>
+            </div>
             <div className="flex items-center"><BusinessIcon className="w-4 h-4 mr-2 text-gray-400" /><span>{page.businessType}</span></div>
-            <div className="flex items-center"><VoiceIcon className="w-4 h-4 mr-2 text-gray-400" /><span>{page.brandVoice}</span></div>
             <div className="flex items-center"><LanguageIcon className="w-4 h-4 mr-2 text-gray-400" /><span>Language: {page.language.toUpperCase()}</span></div>
             <div className="flex items-start"><ServicesIcon className="w-4 h-4 mr-2 mt-1 text-gray-400" />
                 <div className="flex flex-wrap gap-2">
