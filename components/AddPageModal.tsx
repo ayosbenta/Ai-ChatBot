@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Page } from '../types';
+import { Page, BusinessType, BrandVoice, Language } from '../types';
 import { RobotIcon } from './icons';
 
 interface AddPageModalProps {
@@ -66,12 +66,18 @@ const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose, onAddPages
 
   const handleSubmit = () => {
     const selectedPagesData = fetchedPages.filter(p => selectedPageIds.has(p.id));
-    // The parent component (`App.tsx`) will now add the default values
     const newPages: Page[] = selectedPagesData.map(p => ({
         pageId: p.id,
         pageName: p.name,
         accessToken: p.access_token,
-    })) as Page[]; // Cast because other properties are added by parent
+        businessType: BusinessType.OTHER,
+        brandVoice: BrandVoice.FRIENDLY,
+        language: Language.ENGLISH,
+        services: [],
+        active: false,
+        customInstructions: '',
+        updatedAt: new Date(),
+    }));
     onAddPages(newPages);
   };
   

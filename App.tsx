@@ -146,19 +146,9 @@ const App: React.FC = () => {
   };
   
   const handleAddPages = (newPages: Page[]) => {
-    const newPagesWithDefaults = newPages.map(p => ({
-        ...p,
-        businessType: BusinessType.OTHER,
-        brandVoice: BrandVoice.FRIENDLY,
-        language: Language.ENGLISH,
-        services: [],
-        active: false,
-        customInstructions: '',
-        updatedAt: new Date(),
-    }));
     setPages(prevPages => {
         const existingPageIds = new Set(prevPages.map(page => page.pageId));
-        const trulyNewPages = newPagesWithDefaults.filter(page => !existingPageIds.has(page.pageId));
+        const trulyNewPages = newPages.filter(page => !existingPageIds.has(page.pageId));
         return [...prevPages, ...trulyNewPages];
     });
     setAddPageModalOpen(false);
