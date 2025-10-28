@@ -1,0 +1,5 @@
+{
+  "name": "AI Chatbot Command Center",
+  "description": "A comprehensive admin panel to manage AI-powered Facebook chatbots for multiple pages. Configure chatbot personality, services, and activate or deactivate them with ease using the Gemini API for intelligent responses.",
+  "requestFramePermissions": []
+}
