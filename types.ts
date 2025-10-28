@@ -39,6 +39,11 @@ export interface User {
   pictureUrl: string;
 }
 
+export interface ChatMessage {
+  role: 'user' | 'model' | 'error';
+  content: string;
+}
+
 
 // Add type declarations for the Facebook SDK
 declare global {
