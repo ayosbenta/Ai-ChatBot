@@ -33,6 +33,13 @@ export interface Page {
   updatedAt: Date;
 }
 
+export interface User {
+  id: string;
+  name: string;
+  pictureUrl: string;
+}
+
+
 // Add type declarations for the Facebook SDK
 declare global {
   interface Window {

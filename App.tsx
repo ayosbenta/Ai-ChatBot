@@ -1,80 +1,78 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Page, BusinessType, BrandVoice, Language } from './types';
+import { Page, BusinessType, BrandVoice, Language, User } from './types';
 import Dashboard from './components/Dashboard';
 import EditPageModal from './components/EditPageModal';
 import WebhookTestModal from './components/WebhookTestModal';
 import { Header } from './components/Header';
 import AddPageModal from './components/AddPageModal';
 import HttpsGuard from './components/HttpsGuard';
-
-const MOCK_PAGES: Page[] = [
-  {
-    pageId: '1001',
-    pageName: 'Starlight Gadgets',
-    accessToken: 'EA...1',
-    businessType: BusinessType.ECOMMERCE,
-    brandVoice: BrandVoice.FRIENDLY,
-    active: true,
-    services: ['Smartphone Sales', 'Laptop Repairs', 'Accessory Bundles'],
-    language: Language.ENGLISH,
-    updatedAt: new Date(),
-  },
-  {
-    pageId: '1002',
-    pageName: 'Wanderlust Travels',
-    accessToken: 'EA...2',
-    businessType: BusinessType.TRAVEL,
-    brandVoice: BrandVoice.SALES_ORIENTED,
-    active: false,
-    services: ['Tour Packages', 'Flight Booking', 'Hotel Reservations'],
-    language: Language.ENGLISH,
-    updatedAt: new Date('2023-10-26T10:00:00Z'),
-  },
-  {
-    pageId: '1003',
-    pageName: 'SpeedyNet ISP',
-    accessToken: 'EA...3',
-    businessType: BusinessType.ISP,
-    brandVoice: BrandVoice.FORMAL,
-    active: true,
-    services: ['Fiber Internet Plans', 'Technical Support', 'Billing Inquiries'],
-    language: Language.TAGALOG,
-    updatedAt: new Date('2023-11-15T14:30:00Z'),
-  },
-  {
-    pageId: '1004',
-    pageName: 'Manila Bites',
-    accessToken: 'EA...4',
-    businessType: BusinessType.RESTAURANT,
-    brandVoice: BrandVoice.TAGLISH,
-    active: true,
-    services: ['Food Delivery', 'Table Reservations', 'Catering'],
-    language: Language.TAGALOG,
-    updatedAt: new Date(),
-  },
-];
-
+import LoggedOutGuide from './components/LoggedOutGuide';
 
 const App: React.FC = () => {
-  const [pages, setPages] = useState<Page[]>(MOCK_PAGES);
+  const [pages, setPages] = useState<Page[]>([]);
   const [editingPage, setEditingPage] = useState<Page | null>(null);
   const [isWebhookModalOpen, setWebhookModalOpen] = useState<boolean>(false);
   const [isAddPageModalOpen, setAddPageModalOpen] = useState<boolean>(false);
   const [isFbSdkReady, setIsFbSdkReady] = useState<boolean>(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+
+  const fetchUserData = useCallback(async () => {
+    window.FB.api('/me?fields=name,picture.type(large)', (userInfo: any) => {
+      if (userInfo && !userInfo.error) {
+        setUser({
+          id: userInfo.id,
+          name: userInfo.name,
+          pictureUrl: userInfo.picture.data.url,
+        });
+      }
+    });
+
+    window.FB.api('/me/accounts', (pagesResponse: any) => {
+      if (pagesResponse && !pagesResponse.error) {
+        const fetchedPages: Page[] = pagesResponse.data.map((p: any) => ({
+          pageId: p.id,
+          pageName: p.name,
+          accessToken: p.access_token,
+          businessType: BusinessType.OTHER,
+          brandVoice: BrandVoice.FRIENDLY,
+          language: Language.ENGLISH,
+          services: [],
+          active: false,
+          updatedAt: new Date(),
+        }));
+        setPages(fetchedPages);
+      } else {
+        // Could be a permissions issue, clear pages
+        setPages([]);
+      }
+      setIsLoggedIn(true);
+      setIsLoading(false);
+    });
+  }, []);
 
   useEffect(() => {
-    // Define the fbAsyncInit function FIRST
     window.fbAsyncInit = function () {
       window.FB.init({
-        appId: '2471134669825848',
+        appId: '247113466825848',
         cookie: true,
         xfbml: true,
         version: 'v19.0',
       });
-      setIsFbSdkReady(true); // Signal that the SDK is ready
+      setIsFbSdkReady(true);
+      
+      window.FB.getLoginStatus(function(response: any) {
+        if (response.status === 'connected') {
+          fetchUserData();
+        } else {
+          setIsLoggedIn(false);
+          setIsLoading(false);
+        }
+      });
     };
 
-    // THEN, load the SDK script
     (function(d, s, id){
        var js, fjs = d.getElementsByTagName(s)[0];
        if (d.getElementById(id)) {return;}
@@ -87,7 +85,33 @@ const App: React.FC = () => {
        }
      }(document, 'script', 'facebook-jssdk'));
      
-  }, []);
+  }, [fetchUserData]);
+  
+  const handleLogin = useCallback(() => {
+    if (!isFbSdkReady || !window.FB) return;
+    window.FB.login(
+      (response: any) => {
+        if (response.authResponse) {
+          setIsLoading(true);
+          fetchUserData();
+        }
+      },
+      { 
+        scope: 'pages_show_list,pages_manage_metadata,pages_messaging',
+        auth_type: 'rerequest'
+      }
+    );
+  }, [isFbSdkReady, fetchUserData]);
+  
+  const handleLogout = useCallback(() => {
+     if (!isFbSdkReady || !window.FB) return;
+     window.FB.logout(() => {
+        setUser(null);
+        setPages([]);
+        setIsLoggedIn(false);
+     });
+  }, [isFbSdkReady]);
+
 
   const handleToggleActive = useCallback((pageId: string) => {
     setPages(prevPages =>
@@ -102,8 +126,6 @@ const App: React.FC = () => {
   }, []);
   
   const handleRefresh = (pageId: string) => {
-    // In a real app, this would trigger an API call to refresh the token.
-    // Here, we'll just show an alert.
     const page = pages.find(p => p.pageId === pageId);
     alert(`Token refreshed for ${page?.pageName}! (Simulation)`);
   };
@@ -116,26 +138,61 @@ const App: React.FC = () => {
   };
   
   const handleAddPages = (newPages: Page[]) => {
-    setPages(prevPages => [...prevPages, ...newPages]);
+    const newPagesWithDefaults = newPages.map(p => ({
+        ...p,
+        businessType: BusinessType.OTHER,
+        brandVoice: BrandVoice.FRIENDLY,
+        language: Language.ENGLISH,
+        services: [],
+        active: false,
+        updatedAt: new Date(),
+    }));
+    setPages(prevPages => {
+        const existingPageIds = new Set(prevPages.map(page => page.pageId));
+        const trulyNewPages = newPagesWithDefaults.filter(page => !existingPageIds.has(page.pageId));
+        return [...prevPages, ...trulyNewPages];
+    });
     setAddPageModalOpen(false);
-  };
+};
 
   const handleCloseModal = () => {
     setEditingPage(null);
   };
+  
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center h-screen">
+          <div className="text-white text-lg">Loading...</div>
+        </div>
+      );
+    }
+
+    if (!isLoggedIn) {
+      return <LoggedOutGuide onLogin={handleLogin} isSdkReady={isFbSdkReady} />;
+    }
+    
+    return (
+      <Dashboard 
+        pages={pages} 
+        onToggleActive={handleToggleActive} 
+        onEdit={handleEdit}
+        onRefresh={handleRefresh}
+        onAddNewPage={() => setAddPageModalOpen(true)}
+      />
+    );
+  }
 
   return (
     <HttpsGuard>
       <div className="min-h-screen bg-gray-900 font-sans">
-        <Header onTestWebhook={() => setWebhookModalOpen(true)} />
+        <Header 
+          user={user} 
+          onLogout={handleLogout} 
+          onTestWebhook={() => setWebhookModalOpen(true)} 
+        />
         <main className="p-4 sm:p-6 lg:p-8">
-          <Dashboard 
-            pages={pages} 
-            onToggleActive={handleToggleActive} 
-            onEdit={handleEdit}
-            onRefresh={handleRefresh}
-            onAddNewPage={() => setAddPageModalOpen(true)}
-          />
+          {renderContent()}
         </main>
         {editingPage && (
           <EditPageModal
@@ -151,12 +208,11 @@ const App: React.FC = () => {
             onClose={() => setWebhookModalOpen(false)}
           />
         )}
-        {isAddPageModalOpen && (
+        {isLoggedIn && isAddPageModalOpen && (
           <AddPageModal
               isOpen={isAddPageModalOpen}
               onClose={() => setAddPageModalOpen(false)}
               onAddPages={handleAddPages}
-              isFbSdkReady={isFbSdkReady}
               connectedPageIds={pages.map(p => p.pageId)}
           />
         )}
